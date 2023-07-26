@@ -341,3 +341,48 @@ class EulerSolver:
         # TODO: If there is a solution, does it have to be unique?
         f_solved = f.subs(sympy.solve(p.all_coeffs(), yy))
         return EulerSolution(h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(f_solved, x))
+
+    @staticmethod
+    def generic_polynomial(degree: int, coef_name: str):
+        coefficients = sympy.symbols(f'{coef_name}:{degree+1}')
+        f = sum(c * x**index for index, c in enumerate(coefficients))
+        return f, coefficients
+
+    @staticmethod
+    def look_for_solutions(h1:Poly, h2:Poly, d_f: int):
+        f, coef_f = EulerSolver.generic_polynomial(d_f, 'ES_f_')
+        a, coef_a = EulerSolver.generic_polynomial(max(h1.degree(), h2.degree()), 'ES_a_')
+        a = a.subs(coef_a[5],0)
+        a = a.subs(coef_a[4],0)
+        a = a.subs(coef_a[3],5)
+        a = a.subs(coef_a[0],-5/(coef_a[2]-10))
+        a = a.subs(coef_a[2],5)
+        #
+        # a = a.subs(coef_a[2],15)
+        # a = a.subs(coef_a[1],10)
+        # a = a.subs(coef_a[0],1)
+
+        f_plus = f.subs(x,x+1)
+        f_minus = f.subs(x,x-1)
+        h2_plus = h2.subs(x,x+1)
+        a = a + h1 + Poly(h2_plus, x)
+        equation = f*a - f_minus*h1 - Poly(f_plus*h2_plus, x)  # because python is a garbage language
+        vectors = []
+        for c in equation.all_coeffs():
+            v = [c.coeff(cf) for cf in coef_f]
+            vectors.append(v)
+            # print(c)
+            # print(v)
+            # print(sympy.collect(c,coef_f))
+        print(vectors)
+
+h1, h2, f = (Poly(x**4,x), Poly(x**4,x), Poly(2*x + 1,x))
+EulerSolver.look_for_solutions(Poly(x**5,x), Poly(x**5,x), 1)
+b = sympy.Poly(-h1*h2, x)
+
+f = sympy.Poly(f, x)
+g = sympy.Poly(f.subs(x, x-1)*h1 + f.subs(x, x+1)*h2.subs(x, x+1), x)
+a, r = sympy.div(g, f)
+a = Poly(a,x)
+original_solution = EulerSolution(h1, h2, a, b, f)
+# print(original_solution)
