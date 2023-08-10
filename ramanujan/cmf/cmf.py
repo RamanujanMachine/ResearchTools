@@ -1,6 +1,6 @@
 import sympy as sp
+import pickle
 from sympy.abc import n, x, y
-
 from ramanujan import Matrix, Vector, simplify
 from ramanujan.pcf import PCFFromMatrix
 
@@ -13,7 +13,8 @@ class CMF:
     $Mx(x, y) \cdot My(x+1, y) = My(x, y) \cdot Mx(x, y+1)$
     """
 
-    def __init__(self, Mx: Matrix, My: Matrix):
+    def __init__(self, Mx: Matrix, My: Matrix, maximal_cache_dims=(50, 50), 
+        initial_mat=Matrix(sp.eye(2)), initial_loc=(1,1), potential_cache_file=None):
         """
         Initializes a CMF with `Mx` and `My` matrices
         """
@@ -28,8 +29,21 @@ class CMF:
         if simplify(Mxy - Myx) != Matrix([[0, 0], [0, 0]]):
             raise ValueError("The given Mx and My matrices are not conserving!")
 
+        self.initial_loc = initial_loc
+        if potential_cache_file is not None:
+            self.potential_cache = self.load_potential_from_file(potential_cache_file)
+        else:
+            self.reset_potential_cache(maximal_cache_dims, initial_mat)
+
     def __repr__(self):
         return f"CMF({self.Mx}, {self.My})"
+
+    def reset_potential_cache(self, maximal_cache_dims, initial_mat):
+        self.potential_cache = [
+            [None for _ in range(maximal_cache_dims[1]+1)] 
+                for _ in range(maximal_cache_dims[0]+1)]
+
+        self.potential_cache[self.initial_loc[0]][self.initial_loc[1]] = initial_mat
 
     def subs(self, *args, **kwrags):
         """Returns a new CMF with substituted Mx and My."""
@@ -123,3 +137,68 @@ class CMF:
             the walk multiplication as defined above.
         """
         return self.walk(trajectory, iterations, start).limit(vector)
+
+    def __getitem__(self, location):
+        """
+        Same as `potential`.
+        """
+        return self.potential(location)
+
+    def potential(self, location):
+        r"""
+        Returns the potential matrix of the conservative matrix field at a given location.
+
+        This function is not implemented using CMF.walk, to enable caching of CMF potential 
+        cells calculated in the process.
+
+        NOTICE - the cache is stored using python lists, and therefore begins at index 0.
+        This might not the first index of the CMF, which will lead to None values in the 
+        procedding potential cells.
+        """
+        x_target, y_target = location
+        x_start, y_start = self.initial_loc
+
+        if self.potential_cache[x_target][y_target] is not None:
+            return self.potential_cache[x_target][y_target]
+
+        # TODO - move this implementation to a decorator. Something like @cache.
+
+        # We calculate the CMF potential at a location (x,y) by first multiplying the M_x
+        # matrices, and then the M_y matrices. Using this convention, we can use the cached values
+        # to make our calculation shorter.
+
+        # Proceeding the x direction from the initial location - y is constant and equal to y_start
+        for x_i in range(x_start, x_target+1):
+            if self.potential_cache[x_i][y_start] is not None:
+                continue
+
+            self.potential_cache[x_i][y_start] = \
+                self.potential_cache[x_i-1][y_start] * self.Mx.subs({x: x_i-1, y: y_start})
+
+        # Proceeding the y direction from (x_target, y_start)
+        for y_i in range(y_start, y_target+1):
+            if self.potential_cache[x_target][y_i] is not None:
+                continue
+
+            self.potential_cache[x_target][y_i] = \
+                self.potential_cache[x_target][y_i-1] * self.My.subs({x: x_target, y: y_i-1})
+
+        return self.potential_cache[x_target][y_target]
+
+    def calculate_over_range(self, max_x, max_y):
+        """
+        calculates the CMF in first quandrant up to (max_x, max_y).
+        """
+        
+        # The calculation method in `potential` takes steps over the x axis first, then over y.
+        # Since it caches elements while calculating, this will lead to caching of the entire space. 
+        for x_i in range(self.initial_loc[0], max_x+1):
+            self.potential([x_i, max_y])
+
+    def dump_potential_to_file(self, dest_path):
+        with open(dest_path, 'wb') as f:
+            pickle.dump(self.potential_cache, f)
+
+    def load_potential_from_file(self, cache_path):
+        with open(cache_path, 'rb') as f:
+            return pickle.load(f)
