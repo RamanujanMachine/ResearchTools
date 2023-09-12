@@ -23,8 +23,8 @@ class CMF:
         self.My = My
         """The My matrix of the CMF"""
 
-        Mxy = simplify(self.Mx * self.My({x: x + 1}))
-        Myx = simplify(self.My * self.Mx({y: y + 1}))
+        Mxy = simplify(self.Mx @ self.My({x: x + 1}))
+        Myx = simplify(self.My @ self.Mx({y: y + 1}))
         if simplify(Mxy - Myx) != Matrix([[0, 0], [0, 0]]):
             raise ValueError("The given Mx and My matrices are not conserving!")
 
@@ -50,8 +50,12 @@ class CMF:
         Returns:
             A matrix that represents a single step in the desired trajectory
         """
+        
+        # Take `trajectory[x]` steps in the x direction
         m = self.Mx.walk({x: 1, y: 0}, trajectory[x], {x: x, y: y})
-        m *= self.My.walk({x: 0, y: 1}, trajectory[y], {x: x + trajectory[x], y: y})
+        # Take `trajectory[y]` steps in the y direction.
+        m = m @ self.My.walk({x: 0, y: 1}, trajectory[y], {x: x + trajectory[x], y: y})
+
         if start is not None:
             m = CMF.substitute_trajectory(m, trajectory, start)
         return simplify(m)
@@ -72,12 +76,10 @@ class CMF:
         This transformation is possible only when the starting point is known.
         Each incrementation of the variable `n` represents a full step in `trajectory`.
         """
-        from sympy.abc import n
-
-        def sub(i):
-            return start[i] + (n - 1) * trajectory[i]
-
-        return trajectory_matrix.subs([(x, sub(x)), (y, sub(y))])
+        return trajectory_matrix.subs({
+            x: start[x] + (n-1)*trajectory[x],
+            y: start[y] + (n-1)*trajectory[y],
+            })
 
     def walk(
         self, trajectory: dict, iterations: int, start: dict = {x: 1, y: 1}
