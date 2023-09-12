@@ -19,6 +19,11 @@ def test_cmf_pi():
     assert cmf.limit({x: 1, y: 1}, 100, {x: 1, y: 0}) == approx((2 - pi) / 2)
 
 
+def test_cmf_zeta2():
+    cmf = known_cmfs.zeta2()
+    assert cmf.limit({x: 1, y: 1}, 100, {x: 1, y: 1}) == approx((1 - zeta(2)) / zeta(2))
+
+
 def test_cmf_zeta3():
     cmf = known_cmfs.zeta3()
     assert cmf.limit({x: 1, y: 1}, 100, {x: 1, y: 1}) == approx((1 - zeta(3)) / zeta(3))
