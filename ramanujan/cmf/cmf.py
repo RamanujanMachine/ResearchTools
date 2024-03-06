@@ -33,9 +33,9 @@ class CMF:
     def __repr__(self):
         return f"CMF({self.Mx}, {self.My})"
 
-    def subs(self, *args, **kwrags):
+    def subs(self, *args, **kwargs):
         """Returns a new CMF with substituted Mx and My."""
-        return CMF(self.Mx.subs(*args, **kwrags), self.My.subs(*args, **kwrags))
+        return CMF(self.Mx.subs(*args, **kwargs), self.My.subs(*args, **kwargs))
 
     def simplify(self):
         """Returns a new CMF with simplified Mx and My"""
