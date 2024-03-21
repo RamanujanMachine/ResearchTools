@@ -48,21 +48,42 @@ class Matrix(sp.Matrix):
         where `M=self`, `(t_0, ..., t_k)=trajectory`, `n=iterations` and `(s_0, ..., s_k)=start`.
 
         This is a generalization of the basic (and most common) case $\prod_{i=0}^{n-1}M(s+i)$,
-        where `M=self`, `n=iterations` and `s=start`.
+        where M=self, n=iterations and s=start.
 
         Args:
             trajectory: the trajectory of a single step in the walk, as defined above.
-            iterations: the amount of multiplications to perform
+            iterations: The amount of multiplications to perform or a list of integers representing indexes along the multipication proccess to be returned. 
+                        If it's a list, the iterations will be sorted in ascending order to improve efficiency. 
             start: the starting point of the matrix multiplication
         Returns:
-            the walk multiplication as defined above.
+            Steps from the walk multiplication as defined above.
         """
+
         position = start
-        retval = Matrix.eye(2)
-        for _ in range(iterations):
-            retval *= self.subs(position)
+        value_matrix = Matrix.eye(2)
+
+        retval = [value_matrix]
+
+
+        islist = isinstance(iterations, list)
+
+        if islist: iterations.sort()
+
+        endpoint = iterations[-1] if islist else iterations
+        curr = iterations[0] if islist else iterations
+
+        i = 1
+
+        for _ in range(endpoint):
+            value_matrix *= self.subs(position)
+
+            if(_ == curr-1):
+                retval.append(value_matrix)
+                curr = iterations[i] if islist and i < len(iterations) else None
+                i += 1
+
             position = {key: trajectory[key] + value for key, value in position.items()}
-        return retval.simplify()
+        return retval
 
     def ratio(self):
         assert len(self) == 2, "Ratio only supported for vectors of length 2"
