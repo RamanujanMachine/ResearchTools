@@ -1,5 +1,5 @@
 import sympy as sp
-from sympy.abc import a, b, c, x, y
+from sympy.abc import a, b, c, x, y ,z
 
 from ramanujan import Matrix
 from ramanujan.cmf import CMF
@@ -110,5 +110,14 @@ def hypergeometric_derived_3d():
                     [1, 3 + 2 * a + 2 * b + 2 * c],
                 ]
             ),
+        }
+    )
+def hypergeometric_2F1_3d():
+    M = Matrix([[0,a*b/(1-z)],[z,(1+c+(a+b)*z)/(1-z)]])
+    return CMF(
+        matrices={
+            a: M/a+sp.eye(2),
+            b: M/b+sp.eye(2),
+            c: -M/(c+1)+sp.eye(2)
         }
     )
