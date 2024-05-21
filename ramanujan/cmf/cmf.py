@@ -283,8 +283,8 @@ class CMF:
         Mtraj_denom = sp.lcm_list([sp.denom(elem) for elem in Mtraj]) #find Denominator
         Mtraj_norm = (Mtraj*Mtraj_denom).normalize()
         traj_pcf = Mtraj_norm.as_pcf().pcf
-        sing_list = sp.solve(traj_pcf.a_n)+sp.solve(traj_pcf.b_n) # list of singular offets.
-        offset = max(0,max([r for r in sing_list if r.is_integer])) # finds maximal integer root over 0.
+        sing_list = sp.solve(traj_pcf.a_n)+sp.solve(traj_pcf.b_n)+[0] # list of singular offets.
+        offset = max([r for r in sing_list if r.is_integer]) # finds maximal integer root over 0.
         if offset!=0:
             start = {k:(start[k]+offset*traj[k]) for k in self.axes()}
             traj_pcf = traj_pcf.subs({n:n+offset})
